@@ -48,16 +48,15 @@ export interface RefreshResponse {
   admin: AdminView;
 }
 
+export interface TwoFAStatus {
+  required: boolean;
+  method: string;
+  email: string;
+}
+
 export interface MeResponse {
   admin: AdminView;
-  two_factor: {
-    required: boolean;
-    method: string;
-    enabled: boolean;
-    email: string;
-    confirmed_at?: string;
-    updated_at?: string;
-  };
+  two_factor: TwoFAStatus;
   active_sessions: number;
 }
 
@@ -125,15 +124,6 @@ export interface ChangePasswordResponse {
   tokens: TokenPair;
 }
 
-export interface TwoFAStatus {
-  required: boolean;
-  method: string;
-  enabled: boolean;
-  email: string;
-  confirmed_at?: string;
-  updated_at?: string;
-}
-
 export function changePasswordRequest(
   accessToken: string,
   currentPassword: string,
@@ -148,12 +138,4 @@ export function changePasswordRequest(
 
 export function get2faStatusRequest(accessToken: string): Promise<TwoFAStatus> {
   return apiRequest<TwoFAStatus>("/api/auth/2fa", { token: accessToken });
-}
-
-export function enableEmail2faRequest(accessToken: string, password: string): Promise<TwoFAStatus> {
-  return apiRequest<TwoFAStatus>("/api/auth/2fa/email/enable", {
-    method: "POST",
-    body: { password },
-    token: accessToken,
-  });
 }

@@ -29,7 +29,7 @@ export default function ForgotPassword() {
     if (retryAfter && retryAfter > 0) setCooldown(retryAfter);
   });
 
-  async function handleForgot(event: SubmitEvent): Promise<void> {
+  async function handleForgot(event: Event): Promise<void> {
     event.preventDefault();
     setNotice(null);
     try {

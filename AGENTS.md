@@ -1,50 +1,84 @@
-# Portfolio v2 — Agent Context
+# Frontend Agent Rules
 
-## Stack
+**Purpose:** API contract follow karne se bachana. Har rule ek real integration failure prevent karta hai.
 
-- SolidJS 1.9 + Vite 8 + TypeScript (strict, `verbatimModuleSyntax`, `erasableSyntaxOnly`).
-- Styling: CSS Modules co-located (`Component.tsx` + `Component.module.css`). No Tailwind/UnoCSS, no CSS-in-JS, no new CSS deps.
-- Data fetching: native `fetch` wrapper. No axios, no tanstack-query. Routing via `@solidjs/router` v1 (`/` public, `/admin` admin, `*404` fallback in `src/App.tsx`).
-- Do not add dependencies (router, query lib, CSS framework, state lib) without explicit user approval.
-- Do not run build/test/lint/dev commands unless explicitly asked.
+Stack, routing, styling, UI/UX — wo frontend repo ki apni baat hai. Yahan sirf API flow hai.
 
-## Source of truth
+---
 
-- `docs/` is the backend contract. Branch UI logic on `error.code`; use `error.message` for display copy only.
-- Base URL: `VITE_API_BASE_URL` env, fallback `http://localhost:8080` (see `src/lib/api.ts`).
-- All API responses carry `Cache-Control: no-store`. Request bodies max 64 KiB; unknown JSON fields are rejected (`400 invalid_json`).
-- `204` and empty/non-JSON responses (logout, DELETE, router 404 plain text, 405 empty body) must never call `response.json()` — `apiRequest` already guards this.
-- Honor `Retry-After` on `429`.
-- Resume download is raw PDF bytes via plain `<a href>`, never `fetch` + `json()` (`docs/resume.md`).
-- S3 uploads go browser → S3 directly with exactly the signed headers, never through the API client (`docs/uploads.md`).
+## Hard rules
 
-## Auth module (`docs/auth.md`, `docs/admin-login.md`)
+1. **`docs/` padho, guess nahi karo.** Field names, validation rules aur error codes wahan exact likhe hain.
+2. **`error.code` pe branch karo, `error.message` pe nahi.** Message badal sakta hai, `code` stable contract hai.
+3. **Non-JSON responses ko JSON mat samjho.** Resume download raw PDF bytes hai.
+4. **Secrets frontend me nahi.** Sirf public API base URL. Koi token/secret hardcode mat karo.
+5. **Backend modify mat karo.** Contract inconsistent lage to report karo, silently adapt mat karo.
+6. **Retry loop mat banao.** 401 pe ek refresh + ek retry, phir bhi 401 → logout.
+7. **Nested data pe optimistic update nahi.** Experience/projects bullets transactional hain — refetch karo.
 
-- Flow: password login → mandatory email OTP → token pair. The password step never returns tokens.
-- State machine: `signed_out -> authenticating -> login_otp -> authenticated`.
-- Access token lives in memory only (`createSignal`), never in `localStorage`. Refresh token is persisted in `localStorage` (`portfolio_admin_refresh`) and auto-restored via silent refresh on `AuthProvider` mount. Only terminal refresh failures (`invalid_refresh_token`, `refresh_token_reused`, `account_disabled`) and logout wipe it; transient network/5xx failures keep the stored token so the next mount or request retries. Backend returns JSON tokens; there are no `HttpOnly` cookies.
-- Protected requests send `Authorization: Bearer <access_token>` only.
-- On `401 missing_token` / `invalid_token`: single-flight refresh once, retry the original request once, else clear tokens + admin + challenge and route to login. Never run the refresh flow for public failures (wrong password / wrong OTP).
-- Files:
-  - `src/lib/api.ts` — `API_BASE_URL`, `ApiError { code, status, retryAfter }`, `apiRequest` envelope/empty-body handling.
-  - `src/services/auth.ts` — endpoint functions + TS types taken from docs (login, OTP, refresh, me, logout, forgot/reset, change password, 2FA status).
-  - `src/stores/auth.tsx` — `AuthProvider` + `useAuth()` (status, admin, challenge, resetChallenge, tokens, `authFetch`).
-  - `src/components/admin/` — `AdminLogin.tsx` (password + OTP forms only), `ForgotPassword.tsx` (reset flow), `ChangePassword.tsx`, `AccountPage.tsx` (2FA status, password change, logout), `authErrors.ts` (code-based copy).
+---
 
-## Admin dashboard
+## Response types
 
-- Routes are nested under `/admin` in `src/App.tsx`; the parent `AdminRoute` wraps `AuthProvider` + `AdminLayout`. Router v1 has no `Outlet` — the parent renders `props.children` as the content area.
-- `AdminLayout.tsx` gates on `authenticated`: unauthenticated visits render `AdminLogin` inline. Sidebar links use `A` with `activeClass`; dashboard link needs `end`.
-- `DashboardHome.tsx` is the `/admin` index (section cards). Unbuilt sections render `SectionPlaceholder.tsx` until their API wiring task starts. Wired: Profile (`ProfilePage.tsx` + `services/profile.ts`).
-- Layout files: `AdminLayout.tsx` + `.module.css` (grid shell, sticky sidebar/topbar, single breakpoint at `720px`).
+| Endpoint | Response |
+|---|---|
+| Almost everything | JSON |
+| `/api/public/resume/download` | PDF bytes (raw) |
+| S3 presigned upload | S3 ka response, JSON nahi |
 
-## Content modules
+## Auth flow
 
-- Admin forms do a full-object PUT (never PATCH): send every editable field from the response-mapped form state, then replace local state from the response. On `404 *_not_found` during load, render the same form in first-time setup mode.
-- Map absent optional fields to `""` for inputs (`toForm` helpers); the API omits empty optionals in responses.
+1. **2FA mandatory hai.** Email OTP compulsory, bypass nahi. "Skip for now" ka path nahi.
+2. **Password step tokens nahi deta.** `POST /api/auth/login` ke baad authenticated nahi — OTP verify ke baad hota hai.
+3. **Refresh token rotating hai.** Har refresh naya token deta hai, purana invalid. Poora token pair atomically replace karo.
+4. **Refresh serialize karo.** Do concurrent refresh me ek doosre ka token invalidate kar deta hai. Ek single-flight refresh, baaki queue me.
+5. **Access token short-lived hai** (~15 min). Sirf ispe rely mat karo.
+6. **Refresh token `Authorization` header me nahi.** Sirf `POST /api/auth/refresh` body me.
+7. **Refresh fail →** tokens, admin aur challenge state clear, login pe bhejo.
+8. **Logout pe token clear karo**, storage medium koi bhi ho.
 
-## Conventions
+Details: `docs/auth.md`.
 
-- Shared layout/helpers (`.container`, buttons, section spacing) go in `src/index.css` (design tokens live there). One module file per section component; never split tiny elements into their own files.
-- Form inputs stay medium: `font-size 0.9rem`, padding `0.5rem 0.625rem`, full width of the card; OTP/code inputs capped at `12rem` width. Do not make large hero-style inputs in forms.
-- Keep `src/data/profile.ts` static content until the public API wiring task starts.
+---
+
+## Upload flow (S3)
+
+1. **3-step:** presign → seedha S3 `PUT` → key save.
+2. **Upload API ke through nahi.** Browser seedha S3 ko `PUT` kare — API proxy se timeout/bandwidth waste hota hai.
+3. **Returned headers exactly bhejo.** `Content-Type` signed hai, change kiya to S3 `403`.
+4. **Key save karo, URL nahi.** URL expire hota hai.
+5. **CORS error aaye to pehle bucket CORS check karo**, code nahi.
+
+Details: `docs/uploads.md`.
+
+---
+
+## Auth ke bahar
+
+- **Transactional saves refetch karo**, optimistic update nahi.
+- **Error message actionable ho** — raw `error.message` mat dikhao.
+- **Blob URL banaya to use ke baad revoke karo**, warna memory leak.
+- **`404 profile_not_found` frontend bug nahi** — admin ne profile banaya hi nahi.
+- **API already dense/order karke deta hai** jahan doc me likha hai — client-side sort/gap fill redundant hai.
+
+---
+
+## Reference
+
+| Doc | Covers |
+|---|---|
+| `docs/auth.md` | Login, 2FA, refresh, password reset/change |
+| `docs/profile.md` | Profile endpoints |
+| `docs/skills.md` | Skills + categories |
+| `docs/experience.md` | Experience + nested bullets |
+| `docs/projects.md` | Projects + nested bullets |
+| `docs/education.md` | Education |
+| `docs/extras.md` | Extras |
+| `docs/social-links.md` | Social links |
+| `docs/uploads.md` | S3 presigned uploads |
+| `docs/resume.md` | Resume PDF download |
+| `docs/analytics.md` | Download analytics |
+| `docs/audit-log.md` | Audit trail viewer |
+| `PLAN.md` | Phase breakdown aur timeline |
+
+Har endpoint ke exact contract `docs/` me hai. Ye file rules deti hai, wahi contract deta hai.

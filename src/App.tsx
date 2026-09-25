@@ -10,6 +10,7 @@ import DashboardHome from './components/admin/DashboardHome';
 import SectionPlaceholder from './components/admin/SectionPlaceholder';
 import AccountPage from './components/admin/AccountPage';
 import ProfilePage from './components/admin/ProfilePage';
+import SkillsPage from './components/admin/SkillsPage';
 import { AuthProvider } from './stores/auth';
 import { profile } from './data/profile';
 import styles from './App.module.css';
@@ -48,10 +49,6 @@ function AdminRoute(props: { children?: JSX.Element }) {
 
 function ProjectsPage() {
   return <SectionPlaceholder title="Projects" />;
-}
-
-function SkillsPage() {
-  return <SectionPlaceholder title="Skills" />;
 }
 
 function ExperiencePage() {
