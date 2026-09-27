@@ -1,0 +1,174 @@
+.sub {
+  margin: 0 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.preset,
+.presetActive {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.presetActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.preset:disabled,
+.presetActive:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.customForm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.customLabel {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.customForm input {
+  width: 5rem;
+  font-size: 0.9rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.customForm input:disabled {
+  opacity: 0.6;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.warning {
+  margin: 0 0 1rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid #d97706;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.chart {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 0.75rem 0.5rem;
+  overflow-x: auto;
+}
+
+.barWrap {
+  flex: 1 1 0;
+  min-width: 0.375rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.barTrack {
+  height: 8rem;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bar {
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+
+.barCount {
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin: 0 0 1rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid #dc2626;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 720px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}
